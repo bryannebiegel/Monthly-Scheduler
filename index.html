@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Staff Scheduler</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Serif+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F7F2; --surface:#FFFFFF; --sand:#EAE3D2;
+    --navy:#0B1F3A; --slate:#3D4451; --mist:#D9DCE0;
+    --coral:#FF6B5B; --coral-deep:#E04E3F; --coral-dim:rgba(255,107,91,0.12);
+    --green:#2E8B57; --amber:#E0A458; --crimson:#C0392B; --blue:#3A7CA5;
+    --border:rgba(11,31,58,0.10); --border-strong:rgba(11,31,58,0.25);
+    --serif:'Source Serif Pro',Georgia,serif;
+    --sans:'Inter','Helvetica Neue',Arial,sans-serif;
+    --mono:'JetBrains Mono',Consolas,monospace;
+    --radius:12px; --radius-sm:8px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:var(--sans); color:var(--navy);
+    background-color:var(--bg);
+    background-image:radial-gradient(circle,rgba(11,31,58,0.05) 1px,transparent 1px);
+    background-size:22px 22px;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  nav.topbar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(247,247,242,0.92); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+    padding:14px 28px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand{font-weight:700; letter-spacing:-0.02em; font-size:17px}
+  .brand span{color:var(--coral)}
+  .nav-eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--slate); text-transform:uppercase}
+  .wrap{max-width:1240px; margin:0 auto; padding:28px}
+  .layout{display:grid; grid-template-columns:380px 1fr; gap:24px; align-items:start}
+  @media(max-width:980px){.layout{grid-template-columns:1fr}}
+
+  .panel{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:20px; margin-bottom:18px;
+  }
+  .config-col{position:sticky; top:78px; max-height:calc(100vh - 100px); overflow-y:auto; padding-right:4px}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--coral); text-transform:uppercase; display:inline-block; margin-bottom:10px}
+  .step-num{font-family:var(--mono); font-size:11px; color:var(--slate); margin-right:6px}
+  h1{font-size:clamp(26px,4vw,38px); font-weight:700; letter-spacing:-0.03em; margin:6px 0 4px}
+  h1 em{font-family:var(--serif); font-style:italic; font-weight:400; color:var(--coral)}
+  .sub{color:var(--slate); font-size:15px; max-width:560px; margin:0 0 22px}
+  h2{font-size:16px; font-weight:600; letter-spacing:-0.01em; margin:0 0 14px; display:flex; align-items:center; gap:8px}
+  label{display:block; font-size:13px; font-weight:500; margin:12px 0 5px; color:var(--navy)}
+  .hint{font-size:12px; color:var(--slate); margin-top:4px}
+  input[type=text],input[type=number],input[type=time],select{
+    width:100%; padding:9px 11px; border:1px solid var(--border-strong);
+    border-radius:var(--radius-sm); font-family:var(--sans); font-size:14px; color:var(--navy);
+    background:var(--surface); transition:border-color .15s,box-shadow .15s;
+  }
+  input:focus,select:focus{outline:none; border-color:var(--coral); box-shadow:0 0 0 3px var(--coral-dim)}
+  .row{display:flex; gap:10px}
+  .row>*{flex:1}
+  .btn{
+    font-family:var(--sans); font-weight:600; font-size:14px; cursor:pointer;
+    border:none; border-radius:var(--radius-sm); padding:10px 16px; transition:background .15s,transform .05s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-coral{background:var(--coral); color:#F7F7F2}
+  .btn-coral:hover{background:var(--coral-deep)}
+  .btn-ghost{background:transparent; color:var(--navy); border:1px solid var(--border-strong)}
+  .btn-ghost:hover{border-color:var(--coral); color:var(--coral)}
+  .btn-sm{padding:6px 10px; font-size:12px}
+  .btn-block{width:100%}
+
+  .person-card{border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:10px; background:var(--bg)}
+  .person-head{display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .person-name{font-weight:600; font-size:14px}
+  .person-dot{width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:7px; vertical-align:middle}
+  .mini{font-size:12px; color:var(--slate); font-family:var(--mono)}
+  .daysoff-chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px}
+  .chip{font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:100px; border:1px solid var(--border-strong); background:var(--surface); cursor:pointer; user-select:none; transition:all .12s}
+  .chip.on{background:var(--coral-dim); border-color:var(--coral); color:var(--coral-deep)}
+  .remove-x{cursor:pointer; color:var(--slate); font-size:18px; line-height:1; border:none; background:none; padding:0 4px}
+  .remove-x:hover{color:var(--crimson)}
+
+  .constraint-item{display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:var(--sand); border-radius:var(--radius-sm); margin-bottom:7px; font-size:13px}
+  .constraint-item .ci-text{flex:1}
+
+  .toolbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px}
+  .month-label{font-weight:700; font-size:20px; letter-spacing:-0.02em; min-width:200px}
+  .pill{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; font-weight:500; padding:4px 10px; border-radius:100px; text-transform:uppercase; letter-spacing:0.08em}
+  .pill-ok{background:rgba(46,139,87,0.14); border:1px solid rgba(46,139,87,0.3); color:var(--green)}
+  .pill-warn{background:rgba(224,164,88,0.16); border:1px solid rgba(224,164,88,0.35); color:#9a6b1f}
+  .pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 0 rgba(255,107,91,0.6);animation:pulse 1.6s ease-out infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,91,0.55)}70%{box-shadow:0 0 0 9px rgba(255,107,91,0)}100%{box-shadow:0 0 0 0 rgba(255,107,91,0)}}
+
+  table.cal{width:100%; border-collapse:collapse; table-layout:fixed}
+  table.cal th{font-family:var(--mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--slate); padding:8px 4px; text-align:center; font-weight:500}
+  table.cal td{border:1px solid var(--border); vertical-align:top; height:96px; padding:0; background:var(--surface)}
+  td.empty{background:transparent; border:1px solid transparent}
+  .day-num{font-family:var(--mono); font-size:12px; color:var(--slate); padding:4px 6px 0; display:flex; justify-content:space-between; align-items:center}
+  .day-num.today{color:var(--coral); font-weight:500}
+  .day-cov{font-size:10px; font-family:var(--mono)}
+  .cov-full{color:var(--green)} .cov-short{color:var(--amber)} .cov-none{color:var(--crimson)}
+  .day-body{padding:3px 5px 6px; display:flex; flex-direction:column; gap:3px}
+  .assign{font-size:11px; padding:2px 6px; border-radius:5px; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:4px; cursor:default}
+  .assign .ax{cursor:pointer; opacity:.6; font-weight:700}
+  .assign .ax:hover{opacity:1}
+  .shift-tag{font-family:var(--mono); font-size:9px; opacity:.85; margin-right:4px}
+  .add-slot{font-size:11px; color:var(--slate); border:1px dashed var(--border-strong); border-radius:5px; padding:1px 5px; cursor:pointer; text-align:center; background:transparent}
+  .add-slot:hover{border-color:var(--coral); color:var(--coral)}
+
+  details.legend{margin-top:14px; font-size:13px; color:var(--slate)}
+  details.legend summary{cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase}
+  .summary-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin-top:12px}
+  .stat{background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 10px}
+  .stat .v{font-family:var(--mono); font-size:18px; font-weight:500}
+  .stat .k{font-size:11px; color:var(--slate)}
+  .empty-state{text-align:center; padding:60px 20px; color:var(--slate)}
+  .empty-state .big{font-family:var(--serif); font-style:italic; font-size:22px; color:var(--navy); margin-bottom:6px}
+  .print-hide{}
+  @media print{
+    nav.topbar,.config-col,.print-hide,.add-slot,.assign .ax{display:none!important}
+    body{background:#fff} .layout{grid-template-columns:1fr} .wrap{max-width:none;padding:0}
+    td.empty{border-color:#eee}
+  }
+</style>
+</head>
+<body>
+<nav class="topbar">
+  <div class="brand">Jobry<span>.AI</span> &nbsp;·&nbsp; <span style="color:var(--navy);font-weight:500">Scheduler</span></div>
+  <div class="nav-eyebrow">MONTHLY · AUTO-ASSIGN</div>
+</nav>
+
+<div class="wrap">
+  <div class="eyebrow">SHIFT PLANNER</div>
+  <h1>Build a month of <em>coverage</em> in one click.</h1>
+  <p class="sub">Add your people and rules on the left. The engine auto-assigns shifts across the month, respecting days off, weekly limits, and the coverage you need on the floor. Every assignment stays editable.</p>
+
+  <div class="layout">
+    <!-- ===================== CONFIG ===================== -->
+    <div class="config-col print-hide">
+
+      <!-- 1. PEOPLE -->
+      <div class="panel">
+        <h2><span class="step-num">01</span> People &amp; their rules</h2>
+        <div class="row">
+          <input type="text" id="newName" placeholder="Staff name" onkeydown="if(event.key==='Enter')addPerson()">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div>
+            <label style="margin-top:0">Days / week</label>
+            <input type="number" id="newDays" value="5" min="0" max="7">
+            <div class="hint">How many days this person works</div>
+          </div>
+          <div>
+            <label style="margin-top:0">Max consec.</label>
+            <input type="number" id="newConsec" value="6" min="1" max="14">
+            <div class="hint">Days in a row cap</div>
+          </div>
+        </div>
+        <button class="btn btn-coral btn-block" style="margin-top:12px" onclick="addPerson()">+ Add person</button>
+        <div id="peopleList" style="margin-top:14px"></div>
+      </div>
+
+      <!-- 3,4. HOURS + SHIFTS -->
+      <div class="panel">
+        <h2><span class="step-num">02</span> Business hours &amp; shifts</h2>
+        <div class="row">
+          <div><label style="margin-top:0">Opens</label><input type="time" id="openTime" value="09:00"></div>
+          <div><label style="margin-top:0">Closes</label><input type="time" id="closeTime" value="17:00"></div>
+        </div>
+        <label>Shift length (hours)</label>
+        <input type="number" id="shiftLen" value="8" min="1" max="24" step="0.5">
+        <div class="hint" id="shiftHint">The open window is split into back-to-back shifts of this length.</div>
+        <label>Open days <span id="openCount" class="pill pill-ok" style="float:right;padding:2px 9px">0 DAYS/WK</span></label>
+        <div class="daysoff-chips" id="openDays"></div>
+        <div class="hint">Click to toggle which weekdays the business is open.</div>
+      </div>
+
+      <!-- 5. COVERAGE -->
+      <div class="panel">
+        <h2><span class="step-num">03</span> Coverage</h2>
+        <label style="margin-top:0">People on shift at once</label>
+        <input type="number" id="coverage" value="2" min="1" max="20">
+        <div class="hint">Minimum staff the engine tries to place in every shift block.</div>
+      </div>
+
+      <!-- 7. CONSTRAINTS -->
+      <div class="panel">
+        <h2><span class="step-num">04</span> Other constraints</h2>
+        <div class="hint" style="margin-top:0">Free-form rules the engine keeps visible while you review (e.g. "Sam closes Fridays", "No solo openers").</div>
+        <div class="row" style="margin-top:10px">
+          <input type="text" id="newConstraint" placeholder="Add a constraint or note" onkeydown="if(event.key==='Enter')addConstraint()">
+        </div>
+        <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="addConstraint()">+ Add constraint</button>
+        <div id="constraintList" style="margin-top:12px"></div>
+      </div>
+
+      <!-- MONTH + GENERATE -->
+      <div class="panel">
+        <h2><span class="step-num">05</span> Generate</h2>
+        <label style="margin-top:0">Month</label>
+        <input type="month" id="monthPick">
+        <button class="btn btn-coral btn-block" style="margin-top:14px" onclick="generate()">⚡ Auto-generate schedule</button>
+        <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="window.print()">Print / Save as PDF</button>
+      </div>
+    </div>
+
+    <!-- ===================== CALENDAR ===================== -->
+    <div>
+      <div class="toolbar print-hide" id="toolbar" style="display:none">
+        <div class="month-label" id="monthLabel"></div>
+        <span class="pill pill-ok" id="covPill"><span class="pulse-dot"></span> <span id="covPillText">READY</span></span>
+      </div>
+      <div class="panel" style="padding:14px">
+        <div id="calMount">
+          <div class="empty-state">
+            <div class="big">No schedule yet.</div>
+            <div>Add at least one person, set your hours and coverage, then hit <strong>Auto-generate</strong>.</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel print-hide" id="statsPanel" style="display:none">
+        <div class="eyebrow" style="color:var(--slate)">DISTRIBUTION</div>
+        <div class="summary-grid" id="statsGrid"></div>
+        <details class="legend">
+          <summary>How assignments are decided</summary>
+          <p>Hard rules (never broken): a person is never scheduled on a requested day off, never exceeds their days-per-week target in any calendar week, and never exceeds their max-consecutive-days cap. Within those limits the engine balances total shifts so everyone gets roughly even hours, and fills each shift block up to your coverage target. When there aren't enough eligible people to hit coverage, the day is flagged amber/red so you can adjust manually.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const COLORS=['#0B1F3A','#3A7CA5','#2E8B57','#E04E3F','#7A5195','#BC5090','#3D4451','#C0392B','#1F6F54','#5A6B7B','#8a5a00','#2c5d8a'];
+let people=[]; // {id,name,days,consec,off:Set(0-6), color}
+let constraints=[];
+let openDaysSel=new Set([1,2,3,4,5]); // Mon-Fri default
+let pid=1;
+let schedule=null; // {year,month, days:[{date, blocks:[{label,assigned:[personId...]}]}]}
+
+// ---- init ----
+function initOpenDays(){
+  const m=document.getElementById('openDays'); m.innerHTML='';
+  for(let d=0;d<7;d++){
+    const c=document.createElement('span');
+    c.className='chip'+(openDaysSel.has(d)?' on':'');
+    c.textContent=WD[d];
+    c.onclick=()=>{ openDaysSel.has(d)?openDaysSel.delete(d):openDaysSel.add(d); c.classList.toggle('on'); updateOpenCount(); };
+    m.appendChild(c);
+  }
+  updateOpenCount();
+}
+function updateOpenCount(){
+  const el=document.getElementById('openCount'); const n=openDaysSel.size;
+  el.textContent=n+' DAY'+(n===1?'':'S')+'/WK';
+  el.className='pill '+(n===0?'pill-warn':'pill-ok');
+}
+(function(){ const n=new Date(); document.getElementById('monthPick').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); initOpenDays(); renderPeople(); renderConstraints(); updateShiftHint();})();
+document.getElementById('openTime').addEventListener('input',updateShiftHint);
+document.getElementById('closeTime').addEventListener('input',updateShiftHint);
+document.getElementById('shiftLen').addEventListener('input',updateShiftHint);
+
+function shiftBlocks(){
+  const o=document.getElementById('openTime').value, c=document.getElementById('closeTime').value;
+  const len=parseFloat(document.getElementById('shiftLen').value)||8;
+  const [oh,om]=o.split(':').map(Number), [ch,cm]=c.split(':').map(Number);
+  let open=oh+om/60, close=ch+cm/60; if(close<=open) close+=24;
+  const span=close-open; const n=Math.max(1,Math.round(span/len));
+  const blocks=[];
+  for(let i=0;i<n;i++){
+    let s=open+i*len, e=Math.min(open+(i+1)*len,close);
+    blocks.push({label:fmt(s)+'–'+fmt(e), s,e});
+  }
+  return blocks;
+}
+function fmt(h){h=((h%24)+24)%24; let hh=Math.floor(h); let mm=Math.round((h-hh)*60); if(mm===60){hh++;mm=0;} const ap=hh<12||hh===24?'a':'p'; let d=hh%12; if(d===0)d=12; return d+(mm?':'+String(mm).padStart(2,'0'):'')+ap;}
+function updateShiftHint(){
+  const b=shiftBlocks();
+  document.getElementById('shiftHint').textContent=`Splits into ${b.length} shift${b.length>1?'s':''}/day: `+b.map(x=>x.label).join(', ');
+}
+
+// ---- people ----
+function addPerson(){
+  const name=document.getElementById('newName').value.trim(); if(!name)return;
+  const days=Math.max(0,Math.min(7,parseInt(document.getElementById('newDays').value)||5));
+  const consec=Math.max(1,parseInt(document.getElementById('newConsec').value)||6);
+  people.push({id:pid++,name,days,consec,off:new Set(),color:COLORS[(people.length)%COLORS.length]});
+  document.getElementById('newName').value='';
+  renderPeople();
+}
+function removePerson(id){people=people.filter(p=>p.id!==id); renderPeople();}
+function toggleOff(id,d){const p=people.find(x=>x.id===id); p.off.has(d)?p.off.delete(d):p.off.add(d); renderPeople();}
+function renderPeople(){
+  const m=document.getElementById('peopleList'); m.innerHTML='';
+  if(!people.length){m.innerHTML='<div class="hint">No staff added yet.</div>'; return;}
+  people.forEach(p=>{
+    const card=document.createElement('div'); card.className='person-card';
+    let chips='';
+    for(let d=0;d<7;d++) chips+=`<span class="chip${p.off.has(d)?' on':''}" onclick="toggleOff(${p.id},${d})">${WD[d]}</span>`;
+    card.innerHTML=`<div class="person-head">
+        <div class="person-name"><span class="person-dot" style="background:${p.color}"></span>${escapeHtml(p.name)}</div>
+        <button class="remove-x" onclick="removePerson(${p.id})" title="Remove">×</button>
+      </div>
+      <div class="mini">${p.days} days/wk · max ${p.consec} in a row</div>
+      <div style="font-size:12px;color:var(--slate);margin-top:8px">Days off requested:</div>
+      <div class="daysoff-chips">${chips}</div>`;
+    m.appendChild(card);
+  });
+}
+
+// ---- constraints ----
+function addConstraint(){const v=document.getElementById('newConstraint').value.trim(); if(!v)return; constraints.push(v); document.getElementById('newConstraint').value=''; renderConstraints();}
+function removeConstraint(i){constraints.splice(i,1); renderConstraints();}
+function renderConstraints(){
+  const m=document.getElementById('constraintList'); m.innerHTML='';
+  constraints.forEach((c,i)=>{
+    const d=document.createElement('div'); d.className='constraint-item';
+    d.innerHTML=`<span class="ci-text">${escapeHtml(c)}</span><button class="remove-x" onclick="removeConstraint(${i})">×</button>`;
+    m.appendChild(d);
+  });
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// ================= SCHEDULING ENGINE =================
+function generate(){
+  if(!people.length){alert('Add at least one person first.');return;}
+  const [y,mo]=document.getElementById('monthPick').value.split('-').map(Number);
+  const year=y, month=mo-1;
+  const blocks=shiftBlocks();
+  const coverage=Math.max(1,parseInt(document.getElementById('coverage').value)||1);
+  const daysInMonth=new Date(year,month+1,0).getDate();
+
+  // tracking state
+  const totals={}; people.forEach(p=>totals[p.id]=0);          // total shifts assigned
+  const weekCount={};                                           // weekKey->{pid:count}
+  const lastWorked={};                                          // pid-> last date worked (day index) for consec
+  const consecRun={};                                           // pid-> current consecutive streak
+  people.forEach(p=>{consecRun[p.id]=0; lastWorked[p.id]=-99;});
+
+  function weekKey(date){const d=new Date(date); const day=(d.getDay()+6)%7; const monday=new Date(d); monday.setDate(d.getDate()-day); return monday.toISOString().slice(0,10);}
+
+  const days=[];
+  for(let dn=1; dn<=daysInMonth; dn++){
+    const date=new Date(year,month,dn);
+    const dow=date.getDay();
+    const isOpen=openDaysSel.has(dow);
+    const dayObj={dn,date:date.toISOString().slice(0,10),dow,isOpen,blocks:[]};
+    if(!isOpen){days.push(dayObj); continue;}
+    const wk=weekKey(date);
+    if(!weekCount[wk]){weekCount[wk]={}; people.forEach(p=>weekCount[wk][p.id]=0);}
+    const usedToday=new Set(); // one shift per person per day
+
+    blocks.forEach(b=>{
+      const slot={label:b.label,assigned:[]};
+      for(let need=0; need<coverage; need++){
+        // eligible candidates
+        const cand=people.filter(p=>{
+          if(usedToday.has(p.id))return false;
+          if(p.off.has(dow))return false;
+          if(weekCount[wk][p.id]>=p.days)return false;
+          // consecutive check: if worked yesterday, streak+1 must be <= consec
+          const wouldStreak=(lastWorked[p.id]===dn-1)?consecRun[p.id]+1:1;
+          if(wouldStreak>p.consec)return false;
+          return true;
+        });
+        if(!cand.length)break; // understaffed
+        // pick fairest: lowest weekCount ratio then lowest total
+        cand.sort((a,b)=>{
+          const ra=weekCount[wk][a.id]/Math.max(1,a.days), rb=weekCount[wk][b.id]/Math.max(1,b.days);
+          if(ra!==rb)return ra-rb;
+          return totals[a.id]-totals[b.id];
+        });
+        const pick=cand[0];
+        slot.assigned.push(pick.id);
+        usedToday.add(pick.id);
+        weekCount[wk][pick.id]++; totals[pick.id]++;
+      }
+      dayObj.blocks.push(slot);
+    });
+    // update consec streaks based on whether they worked today
+    people.forEach(p=>{
+      if(usedToday.has(p.id)){consecRun[p.id]=(lastWorked[p.id]===dn-1)?consecRun[p.id]+1:1; lastWorked[p.id]=dn;}
+    });
+    days.push(dayObj);
+  }
+  schedule={year,month,coverage,days,totals:{...totals}};
+  renderCalendar();
+  renderStats();
+}
+
+function renderCalendar(){
+  const {year,month,days,coverage}=schedule;
+  const monthName=new Date(year,month,1).toLocaleString('en',{month:'long',year:'numeric'});
+  document.getElementById('monthLabel').textContent=monthName;
+  document.getElementById('toolbar').style.display='flex';
+  document.getElementById('statsPanel').style.display='block';
+
+  const first=new Date(year,month,1).getDay();
+  const todayStr=new Date().toISOString().slice(0,10);
+  let short=0;
+  let html='<table class="cal"><thead><tr>'+WD.map(w=>`<th>${w}</th>`).join('')+'</tr></thead><tbody><tr>';
+  for(let i=0;i<first;i++) html+='<td class="empty"></td>';
+  let col=first;
+  days.forEach(d=>{
+    if(col===7){html+='</tr><tr>';col=0;}
+    if(!d.isOpen){
+      html+=`<td style="background:var(--bg)"><div class="day-num"><span>${d.dn}</span><span class="mini" style="font-size:9px">closed</span></div></td>`;
+    } else {
+      let covClass='cov-full',covTxt='';
+      const totalNeeded=d.blocks.length*coverage;
+      const totalGot=d.blocks.reduce((s,b)=>s+b.assigned.length,0);
+      if(totalGot<totalNeeded){covClass=totalGot===0?'cov-none':'cov-short'; short++;}
+      covTxt=`${totalGot}/${totalNeeded}`;
+      let body='';
+      d.blocks.forEach((b,bi)=>{
+        b.assigned.forEach((id,ai)=>{
+          const p=people.find(x=>x.id===id); if(!p)return;
+          body+=`<div class="assign" style="background:${p.color}"><span><span class="shift-tag">${d.blocks.length>1?b.label:''}</span>${escapeHtml(p.name)}</span><span class="ax" onclick="unassign(${d.dn},${bi},${id})" title="Remove">×</span></div>`;
+        });
+        // add-slot if under coverage
+        if(b.assigned.length<coverage)
+          body+=`<div class="add-slot" onclick="openAssign(${d.dn},${bi})">+ add (${b.assigned.length}/${coverage})</div>`;
+      });
+      const todayCls=d.date===todayStr?' today':'';
+      html+=`<td><div class="day-num${todayCls}"><span>${d.dn}</span><span class="day-cov ${covClass}">${covTxt}</span></div><div class="day-body">${body}</div></td>`;
+    }
+    col++;
+  });
+  while(col<7&&col!==0){html+='<td class="empty"></td>';col++;}
+  html+='</tr></tbody></table>';
+  document.getElementById('calMount').innerHTML=html;
+
+  const pill=document.getElementById('covPill'), txt=document.getElementById('covPillText');
+  if(short===0){pill.className='pill pill-ok'; txt.textContent='FULLY COVERED';}
+  else{pill.className='pill pill-warn'; txt.textContent=short+' DAY'+(short>1?'S':'')+' SHORT';}
+}
+
+function renderStats(){
+  const g=document.getElementById('statsGrid'); g.innerHTML='';
+  people.forEach(p=>{
+    const t=schedule.totals[p.id]||0;
+    const div=document.createElement('div'); div.className='stat';
+    div.innerHTML=`<div class="v" style="color:${p.color}">${t}</div><div class="k">${escapeHtml(p.name)} · shifts</div>`;
+    g.appendChild(div);
+  });
+}
+
+// ---- manual edits ----
+function unassign(dn,bi,id){
+  const day=schedule.days.find(d=>d.dn===dn);
+  const blk=day.blocks[bi];
+  blk.assigned=blk.assigned.filter(x=>x!==id);
+  schedule.totals[id]=Math.max(0,(schedule.totals[id]||0)-1);
+  renderCalendar(); renderStats();
+}
+function openAssign(dn,bi){
+  const day=schedule.days.find(d=>d.dn===dn);
+  const blk=day.blocks[bi];
+  const taken=new Set(day.blocks.flatMap(b=>b.assigned));
+  const opts=people.filter(p=>!blk.assigned.includes(p.id));
+  if(!opts.length){alert('No other staff to add.');return;}
+  const choice=prompt('Add who to '+blk.label+' on day '+dn+'?\n'+opts.map((p,i)=>`${i+1}. ${p.name}${p.off.has(day.dow)?' (off day!)':''}${taken.has(p.id)?' (already on another shift)':''}`).join('\n'));
+  if(!choice)return;
+  const idx=parseInt(choice)-1;
+  if(idx>=0&&idx<opts.length){
+    blk.assigned.push(opts[idx].id);
+    schedule.totals[opts[idx].id]=(schedule.totals[opts[idx].id]||0)+1;
+    renderCalendar(); renderStats();
+  }
+}
+</script>
+</body>
+</html>
